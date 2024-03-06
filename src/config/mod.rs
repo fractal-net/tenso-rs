@@ -10,6 +10,7 @@ use crate::commands;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Config {
+    pub config_path: String,
     pub key_path: String,
     pub subtensor_endpoint: String,
 }
@@ -17,8 +18,9 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
+            config_path: "~/.bittensor/tensors.toml".to_string(),
             key_path: "~/.bittensor".to_string(),
-            subtensor_endpoint: "http://".to_string(),
+            subtensor_endpoint: "wss://entrypoint-finney.opentensor.ai:443".to_string(),
         }
     }
 }
@@ -39,6 +41,10 @@ impl Provider for Config {
 
 impl Config {
     pub fn merge_with_args(&mut self, args: &commands::CliArgs) {
+        if let Some(config_path) = &args.config_path {
+            self.config_path = config_path.clone();
+        }
+
         if let Some(key_path) = &args.key_path {
             self.key_path = key_path.clone();
         }
