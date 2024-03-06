@@ -32,6 +32,10 @@ async fn main() {
 
     config.merge_with_args(&args.cli_args);
 
+    if args.cli_args.config_path.is_some() {
+        config.reload_from_path().unwrap();
+    }
+
     // handle commands
     match &args.command {
         Some(Commands::Stake) => {
