@@ -60,7 +60,10 @@ impl Config {
             .merge(Toml::file(&self.config_path.clone()))
             .merge(Env::prefixed("TENSORS_"));
 
-        let new_config: Config = figment.extract().map_err(error::ConfigError::Invalid)?;
+        let mut new_config: Config = figment.extract().map_err(error::ConfigError::Invalid)?;
+
+        // make sure user cannot re-configure path from path
+        new_config.config_path = self.config_path.clone();
 
         *self = new_config;
 
