@@ -1,7 +1,7 @@
 use clap::{crate_version, Parser, Subcommand};
 use std::{env, process};
 use tensors::{
-    commands::{transfer::TransferArgs, CliArgs},
+    commands::{transfer::transfer, transfer::TransferArgs, CliArgs},
     config::Config,
 };
 
@@ -45,6 +45,7 @@ async fn main() {
         Some(Commands::Transfer(transfer_args)) => {
             println!("Transfering with config: {:?}", config);
             println!("Transfering with args: {:?}", transfer_args);
+            transfer(&config, transfer_args).await.unwrap();
         }
         None => {
             eprintln!("No command provided");
