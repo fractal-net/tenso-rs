@@ -1,7 +1,12 @@
 use clap::{crate_version, Parser, Subcommand};
 use std::{env, process};
 use tensors::{
-    commands::{transfer::transfer, transfer::TransferArgs, CliArgs},
+    commands::{
+        create_coldkey::{create_new_coldkey, CreateColdkeyArgs},
+        transfer::transfer,
+        transfer::TransferArgs,
+        CliArgs,
+    },
     config::Config,
 };
 
@@ -22,6 +27,9 @@ enum Commands {
 
     #[command(arg_required_else_help = true)]
     Transfer(TransferArgs),
+
+    #[command(arg_required_else_help = true)]
+    CreateColdkey(CreateColdkeyArgs),
 }
 
 #[tokio::main]
@@ -47,6 +55,12 @@ async fn main() {
             println!("Transfering with args: {:?}", transfer_args);
             transfer(&config, transfer_args).await.unwrap();
         }
+
+        Some(Commands::CreateColdkey(create_coldkey_args)) => {
+            println!("Creating coldkey");
+            create_new_coldkey(&config, &create_coldkey_args).unwrap();
+        }
+
         None => {
             eprintln!("No command provided");
             process::exit(1);

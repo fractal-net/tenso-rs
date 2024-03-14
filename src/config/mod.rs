@@ -5,13 +5,14 @@ use figment::value::{Dict, Map};
 use figment::Provider;
 use figment::{error::Error, Figment, Metadata, Profile};
 use serde_derive::{Deserialize, Serialize};
+use std::path::PathBuf;
 
 use crate::commands;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Config {
     pub config_path: String,
-    pub key_path: String,
+    pub key_path: PathBuf,
     pub subtensor_endpoint: String,
 }
 
@@ -19,7 +20,7 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             config_path: "~/.bittensor/tensors.toml".to_string(),
-            key_path: "~/.bittensor".to_string(),
+            key_path: "~/.bittensor".into(),
             subtensor_endpoint: "wss://entrypoint-finney.opentensor.ai:443".to_string(),
         }
     }

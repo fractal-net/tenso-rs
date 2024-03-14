@@ -19,6 +19,12 @@ figment = { version = "0.10", features = ["toml", "env"] }
 subxt = "0.34.0"
 subxt-signer = "0.34.0"
 hex = "0.4.3"
+bip39 = { package = "parity-bip39", version = "2.0.1", features = ["rand"] }
+sc-cli = "0.38.0"
+sp-core = "30.0.0"
+rpassword = "7.3.1"
+sc-service = "0.37.0"
+
 
 
 
