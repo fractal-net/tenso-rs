@@ -7,4 +7,7 @@ pub enum KeystoreError {
 
     #[error("IO error")]
     Io(#[from] std::io::Error),
+
+    #[error("Invalid mnemonic: {0}")]
+    InvalidMnemonic(String),
 }

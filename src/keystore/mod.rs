@@ -19,6 +19,19 @@
 pub mod cli;
 pub mod error;
 
+use error::KeystoreError;
+
+use sc_cli::{utils::PublicFor, utils::SeedFor};
+use serde::{Deserialize, Serialize};
+use serde_json::json;
+use sp_core::{
+    crypto::{
+        unwrap_or_default_ss58_version, ExposeSecret, SecretString, Ss58AddressFormat, Ss58Codec,
+    },
+    hexdisplay::HexDisplay,
+};
+use sp_runtime::{traits::IdentifyAccount, MultiSigner};
+
 #[derive(Debug)]
 pub enum EncryptionType {
     Legacy,
@@ -26,35 +39,50 @@ pub enum EncryptionType {
     Nacl,
 }
 
-use bip39::Mnemonic;
-use serde::{Deserialize, Serialize};
-
 #[derive(Serialize, Deserialize, Debug)]
-pub struct Keyfile {
+pub struct Keystore {
     account_id: String,
     public_key: String,
     secret_phrase: Option<String>,
     secret_seed: Option<String>,
     ss58_address: String,
+
+    password: Option<String>,
 }
 
-#[derive(Debug)]
-pub struct KeyFile {
-    pub path: String,
-    pub name: String,
-    pub kind: EncryptionType,
-    pub key: String,
-    pub password: String,
-}
+impl Keystore {
+    pub fn new<Pair>(
+        uri: &str,
+        password: Option<SecretString>,
+        network_override: Option<Ss58AddressFormat>,
+    ) -> Result<Self, KeystoreError>
+    where
+        Pair: sp_core::Pair,
+        Pair::Public: Into<MultiSigner>,
+    {
+        let password = password.as_ref().map(|s| s.expose_secret().as_str());
+        if let Ok((pair, seed)) = Pair::from_phrase(uri, password) {
+            let public_key = pair.public();
+            let network_override = unwrap_or_default_ss58_version(network_override);
+            let ss58_address = public_key.to_ss58check_with_version(network_override);
 
-impl KeyFile {
-    pub fn new(words: &string) -> KeyFile {
-        let mnemonic = Mnemonic::generate(words)
-            .map_err(|e| CommandError::Input(format!("Mnemonic generation failed: {e}").into()))?;
+            Ok(Keystore {
+                secret_phrase: Some(uri.to_owned()),
+                secret_seed: Some(format_seed::<Pair>(seed)),
+                public_key: format_public_key::<Pair>(public_key.clone()),
+                account_id: format_account_id::<Pair>(public_key),
+                ss58_address,
+                password: password.map(|s| s.to_string()),
+            })
+        } else {
+            Err(KeystoreError::InvalidMnemonic(
+                "Invalid mnemonic while creating keyfile".into(),
+            ))
+        }
+    }
 
-        let password = args.keystore_params.read_password()?;
-
-        let phrase = mnemonic.words().collect::<Vec<_>>().join(" ");
+    pub fn to_json(&self) -> Result<serde_json::Value, KeystoreError> {
+        Ok(json!(self))
     }
 }
 
@@ -66,4 +94,25 @@ pub fn validate_password(password: &str) -> bool {
     }
 
     return true;
+}
+
+/// formats seed as hex
+fn format_seed<P: sp_core::Pair>(seed: SeedFor<P>) -> String {
+    format!("0x{}", HexDisplay::from(&seed.as_ref()))
+}
+
+/// formats public key as hex
+fn format_public_key<P: sp_core::Pair>(public_key: PublicFor<P>) -> String {
+    format!("0x{}", HexDisplay::from(&public_key.as_ref()))
+}
+
+/// formats public key as accountId as hex
+fn format_account_id<P: sp_core::Pair>(public_key: PublicFor<P>) -> String
+where
+    PublicFor<P>: Into<MultiSigner>,
+{
+    format!(
+        "0x{}",
+        HexDisplay::from(&public_key.into().into_account().as_ref())
+    )
 }

@@ -10,9 +10,6 @@ pub enum CommandError {
     #[error("Invalid input: {0}")]
     Input(String),
 
-    #[error("Keystore error")]
+    #[error("Keyfile error")]
     KeystoreError(#[from] KeystoreError),
-
-    #[error("Invalid mnemonic: {0}")]
-    InvalidMnemonic(String),
 }
