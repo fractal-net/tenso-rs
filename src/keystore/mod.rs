@@ -16,90 +16,54 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-// #[derive(Debug)]
-// pub enum EncryptionType {
-//     Legacy,
-//     Ansible,
-//     Nacl,
-// }
-//
-// #[derive(Debug)]
-// pub struct KeyFile {
-//     pub path: String,
-//     pub name: String,
-//     pub kind: EncryptionType,
-//     pub key: String,
-//     pub password: String,
-// }
-//
-// impl KeyFile {
-//     pub fn new() -> KeyFile {
-//         KeyFile {
-//             path: String::from(""),
-//             name: String::from(""),
-//             kind: EncryptionType::Nacl,
-//             key: String::from(""),
-//             password: String::from(""),
-//         }
-//     }
-// }
-//
-// pub fn validate_password(password: &str) -> bool {
-//     let min_length = 8;
-//
-//     if password.len() < min_length {
-//         return false;
-//     }
-//
-//     return true;
-// }
-
+pub mod cli;
 pub mod error;
-use clap::Args;
-use error::KeystoreError;
 
-use sp_core::crypto::SecretString;
-
-/// Parameters of the keystore
-#[derive(Debug, Clone, Args)]
-pub struct KeystoreArgs {
-    /// Use interactive shell for entering the password used by the keystore.
-    #[arg(long, 
-          default_value = "true",
-          conflicts_with_all = &["password"],
-          help = "Use interactive shell for entering the password used by the keystore"
-          )
-    ]
-    pub password_interactive: bool,
-
-    /// Password used by the keystore.
-    #[arg(
-		long,
-		value_parser = secret_string_from_str,
-        value_name = "PASSWORD",
-		conflicts_with_all = &["password_interactive"],
-        help = "Password used by the keystore"
-	)]
-    pub password: Option<SecretString>,
+#[derive(Debug)]
+pub enum EncryptionType {
+    Legacy,
+    Ansible,
+    Nacl,
 }
 
-/// Parse a secret string, returning a displayable error.
-pub fn secret_string_from_str(s: &str) -> std::result::Result<SecretString, String> {
-    std::str::FromStr::from_str(s).map_err(|_| "Could not get SecretString".to_string())
+use bip39::Mnemonic;
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Keyfile {
+    account_id: String,
+    public_key: String,
+    secret_phrase: Option<String>,
+    secret_seed: Option<String>,
+    ss58_address: String,
 }
 
-impl KeystoreArgs {
-    pub fn read_password(&self) -> Result<Option<SecretString>, KeystoreError> {
-        let (password_interactive, password) = (self.password_interactive, self.password.clone());
+#[derive(Debug)]
+pub struct KeyFile {
+    pub path: String,
+    pub name: String,
+    pub kind: EncryptionType,
+    pub key: String,
+    pub password: String,
+}
 
-        let pass = if password_interactive {
-            let password =
-                rpassword::prompt_password("Key password: ").map_err(|e| KeystoreError::Io(e))?;
-            Some(SecretString::new(password))
-        } else {
-            password
-        };
+impl KeyFile {
+    pub fn new(words: &string) -> KeyFile {
+        let mnemonic = Mnemonic::generate(words)
+            .map_err(|e| CommandError::Input(format!("Mnemonic generation failed: {e}").into()))?;
 
-        Ok(pass)
+        let password = args.keystore_params.read_password()?;
+
+        let phrase = mnemonic.words().collect::<Vec<_>>().join(" ");
     }
+}
+
+pub fn validate_password(password: &str) -> bool {
+    let min_length = 8;
+
+    if password.len() < min_length {
+        return false;
+    }
+
+    return true;
 }

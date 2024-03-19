@@ -12,4 +12,7 @@ pub enum CommandError {
 
     #[error("Keystore error")]
     KeystoreError(#[from] KeystoreError),
+
+    #[error("Invalid mnemonic: {0}")]
+    InvalidMnemonic(String),
 }
