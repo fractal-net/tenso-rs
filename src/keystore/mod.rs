@@ -50,6 +50,7 @@ pub struct Keystore {
 
     #[serde(skip_serializing)]
     name: String,
+    #[serde(skip_serializing)]
     password: Option<String>,
 }
 
@@ -64,8 +65,7 @@ impl Keystore {
         Pair: sp_core::Pair,
         Pair::Public: Into<MultiSigner>,
     {
-        let password = password.as_ref().map(|s| s.expose_secret().as_str());
-        if let Ok((pair, seed)) = Pair::from_phrase(uri, password) {
+        if let Ok((pair, seed)) = Pair::from_phrase(uri, None) {
             let public_key = pair.public();
             let network_override = unwrap_or_default_ss58_version(network_override);
             let ss58_address = public_key.to_ss58check_with_version(network_override);
@@ -78,7 +78,10 @@ impl Keystore {
                 ss58_address,
 
                 name: name.to_string(),
-                password: password.map(|s| s.to_string()),
+                password: password
+                    .as_ref()
+                    .map(|s| s.expose_secret().as_str())
+                    .map(|s| s.to_string()),
             })
         } else {
             Err(KeystoreError::InvalidMnemonic(

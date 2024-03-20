@@ -30,17 +30,16 @@ pub fn create_new_coldkey(
     let mnemonic = Mnemonic::generate(words)
         .map_err(|e| CommandError::Input(format!("Mnemonic generation failed: {e}").into()))?;
 
-    let password = args.keystore_params.read_password()?;
-
-    let phrase = mnemonic.words().collect::<Vec<_>>().join(" ");
-
     let name = args.keystore_params.read_name()?;
+
+    let password = args.keystore_params.read_password()?;
+    let phrase = mnemonic.words().collect::<Vec<_>>().join(" ");
 
     let keystore = Keystore::new::<sp_core::sr25519::Pair>(
         &name,
         &phrase,
         password,
-        Some(Ss58AddressFormat::custom(5)),
+        Some(Ss58AddressFormat::custom(42)),
     )?;
 
     let full_path = config.key_path.join(&name);
