@@ -25,7 +25,7 @@ pub fn create_new_coldkey(
     config: &config::Config,
     args: &CreateColdkeyArgs,
 ) -> Result<(), CommandError> {
-    let words = keystore::validator_wordcount(args.num_words)?;
+    let words = keystore::validate_wordcount(args.num_words)?;
 
     let mnemonic = Mnemonic::generate(words)
         .map_err(|e| CommandError::Input(format!("Mnemonic generation failed: {e}").into()))?;
@@ -45,7 +45,7 @@ pub fn create_new_coldkey(
     let full_path = config.key_path.join(&name);
     println!("Saving keystore to: {:?}", full_path);
 
-    keystore.save_to_file(&full_path)?;
+    keystore.save_to_file_without_secrets(&full_path)?;
 
     Ok(())
 }
