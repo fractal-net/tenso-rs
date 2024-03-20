@@ -17,6 +17,7 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 pub mod cli;
+pub mod encryption;
 pub mod error;
 
 use error::KeystoreError;
@@ -32,13 +33,6 @@ use sp_core::{
 };
 use sp_runtime::{traits::IdentifyAccount, MultiSigner};
 use std::path::PathBuf;
-
-#[derive(Debug)]
-pub enum EncryptionType {
-    Legacy,
-    Ansible,
-    Nacl,
-}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Keystore {
@@ -94,7 +88,27 @@ impl Keystore {
         Ok(json!(self))
     }
 
-    pub fn save_to_file(&self, path: &PathBuf) -> Result<(), KeystoreError> {
+    pub fn save_unencrypted_without_secrets_to_file(
+        &self,
+        path: &PathBuf,
+    ) -> Result<(), KeystoreError> {
+        let json = serde_json::json!({
+            "accountId": self.account_id,
+            "publicKey": self.public_key,
+            // Explicitly specify the type for None values as Option<String>
+            "secretPhrase": None::<Option<String>>,
+            "secretSeed": None::<Option<String>>,
+            "ss58Address": self.ss58_address,
+        })
+        .to_string();
+
+        std::fs::write(path, json).map_err(KeystoreError::Io)
+    }
+
+    pub fn save_unencrypted_with_secrets_to_file(
+        &self,
+        path: &PathBuf,
+    ) -> Result<(), KeystoreError> {
         let json = self.to_json()?.to_string();
         std::fs::write(path, json).map_err(|e| KeystoreError::Io(e))
     }
@@ -110,7 +124,7 @@ pub fn validate_password(password: &str) -> bool {
     return true;
 }
 
-pub fn validator_wordcount(num_words: Option<usize>) -> Result<usize, KeystoreError> {
+pub fn validate_wordcount(num_words: Option<usize>) -> Result<usize, KeystoreError> {
     let words = match num_words {
         Some(words_count) if [12, 15, 18, 21, 24].contains(&words_count) => Ok(words_count),
         Some(_) => Err(KeystoreError::WordCount),
@@ -140,3 +154,5 @@ where
         HexDisplay::from(&public_key.into().into_account().as_ref())
     )
 }
+
+fn encrypt_nacl() {}
