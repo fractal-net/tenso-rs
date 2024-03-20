@@ -154,5 +154,3 @@ where
         HexDisplay::from(&public_key.into().into_account().as_ref())
     )
 }
-
-fn encrypt_nacl() {}
