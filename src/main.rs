@@ -44,6 +44,8 @@ async fn main() {
         config.reload_from_path().unwrap();
     }
 
+    println!("Config: {:?}", config);
+
     // handle commands
     match &args.command {
         Some(Commands::Stake) => {

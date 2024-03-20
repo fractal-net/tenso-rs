@@ -8,6 +8,15 @@ pub enum KeystoreError {
     #[error("IO error")]
     Io(#[from] std::io::Error),
 
+    #[error("Dialogue error")]
+    DialogueError(#[from] dialoguer::Error),
+
+    #[error("Invalid word count")]
+    WordCount,
+
+    #[error("Invalid name")]
+    InvalidName,
+
     #[error("Invalid mnemonic: {0}")]
     InvalidMnemonic(String),
 }

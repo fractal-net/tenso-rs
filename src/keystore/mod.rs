@@ -31,6 +31,7 @@ use sp_core::{
     hexdisplay::HexDisplay,
 };
 use sp_runtime::{traits::IdentifyAccount, MultiSigner};
+use std::path::PathBuf;
 
 #[derive(Debug)]
 pub enum EncryptionType {
@@ -47,11 +48,14 @@ pub struct Keystore {
     secret_seed: Option<String>,
     ss58_address: String,
 
+    #[serde(skip_serializing)]
+    name: String,
     password: Option<String>,
 }
 
 impl Keystore {
     pub fn new<Pair>(
+        name: &str,
         uri: &str,
         password: Option<SecretString>,
         network_override: Option<Ss58AddressFormat>,
@@ -72,6 +76,8 @@ impl Keystore {
                 public_key: format_public_key::<Pair>(public_key.clone()),
                 account_id: format_account_id::<Pair>(public_key),
                 ss58_address,
+
+                name: name.to_string(),
                 password: password.map(|s| s.to_string()),
             })
         } else {
@@ -84,6 +90,11 @@ impl Keystore {
     pub fn to_json(&self) -> Result<serde_json::Value, KeystoreError> {
         Ok(json!(self))
     }
+
+    pub fn save_to_file(&self, path: &PathBuf) -> Result<(), KeystoreError> {
+        let json = self.to_json()?.to_string();
+        std::fs::write(path, json).map_err(|e| KeystoreError::Io(e))
+    }
 }
 
 pub fn validate_password(password: &str) -> bool {
@@ -94,6 +105,16 @@ pub fn validate_password(password: &str) -> bool {
     }
 
     return true;
+}
+
+pub fn validator_wordcount(num_words: Option<usize>) -> Result<usize, KeystoreError> {
+    let words = match num_words {
+        Some(words_count) if [12, 15, 18, 21, 24].contains(&words_count) => Ok(words_count),
+        Some(_) => Err(KeystoreError::WordCount),
+        None => Ok(12),
+    };
+
+    return words;
 }
 
 /// formats seed as hex

@@ -5,7 +5,7 @@ use sp_core::crypto::Ss58AddressFormat;
 use crate::{
     commands::error::CommandError,
     config,
-    keystore::{cli::KeystoreArgs, Keystore},
+    keystore::{self, cli::KeystoreArgs, Keystore},
 };
 
 #[derive(Debug, Parser)]
@@ -25,13 +25,7 @@ pub fn create_new_coldkey(
     config: &config::Config,
     args: &CreateColdkeyArgs,
 ) -> Result<(), CommandError> {
-    let words = match args.num_words {
-        Some(words_count) if [12, 15, 18, 21, 24].contains(&words_count) => Ok(words_count),
-        Some(_) => Err(CommandError::Input(
-            "Invalid number of words given for phrase: must be 12/15/18/21/24".into(),
-        )),
-        None => Ok(12),
-    }?;
+    let words = keystore::validator_wordcount(args.num_words)?;
 
     let mnemonic = Mnemonic::generate(words)
         .map_err(|e| CommandError::Input(format!("Mnemonic generation failed: {e}").into()))?;
@@ -40,20 +34,19 @@ pub fn create_new_coldkey(
 
     let phrase = mnemonic.words().collect::<Vec<_>>().join(" ");
 
-    Keystore::new::<sp_core::sr25519::Pair>(&phrase, password, Some(Ss58AddressFormat::custom(5)));
+    let name = args.keystore_params.read_name()?;
 
-    //get_new_keyfile_json::<sp_core::sr25519::Pair>(
-    //    &phrase,
-    //    password,
-    //    Some(Ss58AddressFormat::custom(5)),
-    //);
+    let keystore = Keystore::new::<sp_core::sr25519::Pair>(
+        &name,
+        &phrase,
+        password,
+        Some(Ss58AddressFormat::custom(5)),
+    )?;
 
-    // print_from_uri::<sp_core::sr25519::Pair>(
-    //     &phrase,
-    //     password,
-    //     Some(Ss58AddressFormat::custom(5)),
-    //     OutputType::Json,
-    // );
+    let full_path = config.key_path.join(&name);
+    println!("Saving keystore to: {:?}", full_path);
+
+    keystore.save_to_file(&full_path)?;
 
     Ok(())
 }

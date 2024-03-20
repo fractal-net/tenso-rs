@@ -1,11 +1,31 @@
 use crate::keystore::error::KeystoreError;
 use clap::Args;
+use dialoguer::Input;
 
 use sp_core::crypto::SecretString;
 
 /// Parameters of the keystore
 #[derive(Debug, Clone, Args)]
 pub struct KeystoreArgs {
+
+    /// Use interactive shell for entering the name of the keystore.
+    #[arg(long, 
+          default_value = "true",
+          conflicts_with_all = &["name"],
+          help = "Use interactive shell for entering the name of the keystore"
+          )
+    ]
+    pub name_interactive: bool,
+
+    /// Name of the keystore.
+    #[arg(
+        long,
+        conflicts_with_all = &["name_interactive"],
+        help = "Name of the keystore"
+    )]
+    pub name: Option<String>,
+
+
     /// Use interactive shell for entering the password used by the keystore.
     #[arg(long, 
           default_value = "true",
@@ -32,6 +52,27 @@ pub fn secret_string_from_str(s: &str) -> std::result::Result<SecretString, Stri
 }
 
 impl KeystoreArgs {
+
+    pub fn read_name(&self) -> Result<String, KeystoreError> {
+
+        let (name_interactive, name) = (self.name_interactive, self.name.clone());
+        let name = if name_interactive {
+            let name = Input::<String>::new()
+                .with_prompt("Enter the name of the keystore")
+                .interact()
+                .map_err(|e| KeystoreError::DialogueError(e))?;
+
+            name
+        } else {
+            match name {
+                Some(name) => name,
+                None => return Err(KeystoreError::InvalidName),
+            }
+        };
+
+        Ok(name)
+    }
+
     pub fn read_password(&self) -> Result<Option<SecretString>, KeystoreError> {
         let (password_interactive, password) = (self.password_interactive, self.password.clone());
 
@@ -45,5 +86,6 @@ impl KeystoreArgs {
 
         Ok(pass)
     }
+
 }
 
