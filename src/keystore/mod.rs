@@ -34,6 +34,8 @@ use sp_core::{
 use sp_runtime::{traits::IdentifyAccount, MultiSigner};
 use std::path::PathBuf;
 
+use self::encryption::EncryptionType;
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Keystore {
     account_id: String,
@@ -102,7 +104,7 @@ impl Keystore {
         })
         .to_string();
 
-        std::fs::write(path, json).map_err(KeystoreError::Io)
+        std::fs::write(path.join("coldkeypub.txt"), json).map_err(KeystoreError::Io)
     }
 
     pub fn save_unencrypted_with_secrets_to_file(
@@ -112,6 +114,22 @@ impl Keystore {
         let json = self.to_json()?.to_string();
         std::fs::write(path, json).map_err(|e| KeystoreError::Io(e))
     }
+
+    pub fn save_encrypted_with_secrets_to_file(&self, path: &PathBuf) -> Result<(), KeystoreError> {
+        let json = self.to_json()?.to_string();
+        if self.password.is_none() {
+            return Err(KeystoreError::NoPasswordProvided);
+        }
+
+        let pw = self.password.as_ref().unwrap();
+        let encrypted = encryption::encrypt(&json, pw, EncryptionType::Nacl)?;
+
+        std::fs::write(path.join("coldkey"), encrypted).map_err(|e| KeystoreError::Io(e))
+    }
+}
+
+pub fn create_keyfile_directory(path: &PathBuf) -> Result<(), KeystoreError> {
+    std::fs::create_dir_all(path).map_err(KeystoreError::Io)
 }
 
 pub fn validate_password(password: &str) -> bool {

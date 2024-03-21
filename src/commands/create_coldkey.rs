@@ -43,9 +43,12 @@ pub fn create_new_coldkey(
     )?;
 
     let full_path = config.key_path.join(&name);
+    keystore::create_keyfile_directory(&full_path)?;
+
     println!("Saving keystore to: {:?}", full_path);
 
     keystore.save_unencrypted_without_secrets_to_file(&full_path)?;
+    keystore.save_encrypted_with_secrets_to_file(&full_path)?;
 
     Ok(())
 }

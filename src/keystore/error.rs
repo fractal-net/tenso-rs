@@ -22,4 +22,7 @@ pub enum KeystoreError {
 
     #[error("Unsupported encryption type")]
     UnsupportedEncryptionType,
+
+    #[error("No password provided")]
+    NoPasswordProvided,
 }

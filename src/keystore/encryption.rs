@@ -17,16 +17,11 @@ pub fn encrypt(
     data: &str,
     password: &str,
     encryption_type: EncryptionType,
-) -> Result<String, KeystoreError> {
+) -> Result<Vec<u8>, KeystoreError> {
     match encryption_type {
         EncryptionType::Nacl => {
             let encrypted_data = encrypt_nacl(data, password);
-            let formatted_output = encrypted_data
-                .iter()
-                .map(|&b| format!("{:02x}", b))
-                .collect::<String>();
-
-            Ok(formatted_output)
+            Ok(encrypted_data)
         }
         _ => Err(KeystoreError::UnsupportedEncryptionType),
     }
