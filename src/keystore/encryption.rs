@@ -27,6 +27,20 @@ pub fn encrypt(
     }
 }
 
+pub fn decrypt(
+    data: vec<u8>,
+    password: &str,
+    encryption_type: EncryptionType,
+) -> Result<Vec<u8>, KeystoreError> {
+    match encryption_type {
+        EncryptionType::Nacl => {
+            let decrypted_data = decrypt_nacl(data, password);
+            Ok(decrypted_data)
+        }
+        _ => Err(KeystoreError::UnsupportedEncryptionType),
+    }
+}
+
 pub fn encrypt_nacl(data: &str, password: &str) -> Vec<u8> {
     // todo: find a clever place to put this
     sodiumoxide::init().unwrap();
@@ -59,8 +73,34 @@ pub fn encrypt_nacl(data: &str, password: &str) -> Vec<u8> {
     output
 }
 
-pub fn decrypt_nacl() -> String {
-    "".to_string()
+pub fn decrypt_nacl(data: &str, password: &str) -> Vec<u8> {
+    // todo: find a clever place to put this
+    sodiumoxide::init().unwrap();
+
+    let salt = argon2i13::Salt::from_slice(&NACL_SALT).unwrap();
+
+    let password_bytes = password.as_bytes();
+
+    let mut pk = [0; secretbox::KEYBYTES];
+
+    let key_bytes = argon2i13::derive_key(
+        &mut pk,
+        password_bytes,
+        &salt,
+        argon2i13::OPSLIMIT_SENSITIVE,
+        argon2i13::MEMLIMIT_SENSITIVE,
+    )
+    .unwrap();
+
+    let key = secretbox::Key::from_slice(&key_bytes).unwrap();
+
+    let nonce = secretbox::gen_nonce();
+
+    let encrypted_data = secretbox::seal(&mut data.as_bytes(), &nonce, &key);
+
+    let mut output = "$NACL".as_bytes().to_vec();
+    output.extend_from_slice(&nonce.0);
+    output.extend_from_slice(&encrypted_data);
 }
 
 #[cfg(test)]
@@ -108,5 +148,12 @@ mod test {
             .collect::<String>();
 
         assert_eq!(formatted_output, expected_output);
+    }
+
+    #[test]
+    fn it_decrypts_nacl_correctly() {
+        let data = std::fs::read("~/testensor/dingle/coldkey").unwrap();
+        let password = "password";
+        println!("{:?}", data);
     }
 }

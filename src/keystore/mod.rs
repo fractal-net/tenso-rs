@@ -86,6 +86,31 @@ impl Keystore {
         }
     }
 
+    pub fn new_from_disk(
+        path: &PathBuf,
+        password: Option<SecretString>,
+    ) -> Result<Self, KeystoreError> {
+        let encrypted = std::fs::read(path.join("coldkey"))
+            .map_err(|e| KeystoreError::Io(e))?
+            .to_vec();
+
+        let password = password
+            .as_ref()
+            .map(|s| s.expose_secret().as_str())
+            .map(|s| s.to_string())
+            .unwrap();
+
+        let decrypted = encryption::decrypt(&encrypted, &password, EncryptionType::Nacl)?;
+
+        let decrypted_str =
+            std::str::from_utf8(&decrypted).map_err(|e| KeystoreError::NoPasswordProvided(e))?;
+
+        let keystore: Keystore =
+            serde_json::from_str(&decrypted).map_err(|e| KeystoreError::JsonError(e))?;
+
+        Ok(keystore)
+    }
+
     pub fn to_json(&self) -> Result<serde_json::Value, KeystoreError> {
         Ok(json!(self))
     }

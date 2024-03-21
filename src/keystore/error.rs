@@ -25,4 +25,7 @@ pub enum KeystoreError {
 
     #[error("No password provided")]
     NoPasswordProvided,
+
+    #[error("Json error")]
+    JsonError(#[from] serde_json::Error),
 }
