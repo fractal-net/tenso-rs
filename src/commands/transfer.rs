@@ -28,6 +28,7 @@ pub async fn transfer(config: &config::Config, args: &TransferArgs) -> Result<()
 
     let balance_transfer_tx = api::tx().balances().transfer(dest, 10_000);
 
+    // test phrase
     let phrase = "bottom drive obey lake curtain smoke basket hold race lonely fit walk";
     let mnemonic = Mnemonic::parse(phrase).unwrap();
     let from = Keypair::from_phrase(&mnemonic, None).unwrap();
