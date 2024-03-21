@@ -79,14 +79,6 @@ pub fn decrypt_nacl(data: &Vec<u8>, password: &str) -> Vec<u8> {
 
     let salt = argon2i13::Salt::from_slice(&NACL_SALT).unwrap();
 
-    // todo: verify it's of the right type
-    let data_without_prefix = &data[5..];
-
-    let nonce_slice = &data_without_prefix[0..24]; // Get the slice of the first 24 bytes
-    let nonce_array: [u8; 24] = nonce_slice.try_into().expect("Slice with incorrect length"); // Convert the slice into an array
-    let nonce = secretbox::Nonce(nonce_array);
-    let data = &data_without_prefix[24..];
-
     let password_bytes = password.as_bytes();
 
     let mut pk = [0; secretbox::KEYBYTES];
@@ -102,8 +94,9 @@ pub fn decrypt_nacl(data: &Vec<u8>, password: &str) -> Vec<u8> {
 
     let key = secretbox::Key::from_slice(&key_bytes).unwrap();
 
-    let encrypted_data = secretbox::open(&mut data, &nonce, &key).unwrap();
-    println!("{:?}", encrypted_data);
+    let nonce = secretbox::gen_nonce();
+
+    let encrypted_data = secretbox::open(&mut data.clone(), &nonce, &key).unwrap();
 
     vec![]
 }
@@ -162,6 +155,9 @@ mod test {
 
         println!("{:?}", resource_path);
         let data = std::fs::read(resource_path).unwrap();
+        let data_without_prefix = &data[5..];
+
+        let nonce = secretbox::Nonce([]);
 
         let password = "Password1!";
         let decrypted = decrypt_nacl(&data, password);

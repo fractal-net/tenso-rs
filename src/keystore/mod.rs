@@ -103,10 +103,10 @@ impl Keystore {
         let decrypted = encryption::decrypt(&encrypted, &password, EncryptionType::Nacl)?;
 
         let decrypted_str =
-            std::str::from_utf8(&decrypted).map_err(|e| KeystoreError::NoPasswordProvided(e))?;
+            std::str::from_utf8(&decrypted).map_err(|_| KeystoreError::NoPasswordProvided)?;
 
         let keystore: Keystore =
-            serde_json::from_str(&decrypted).map_err(|e| KeystoreError::JsonError(e))?;
+            serde_json::from_str(&decrypted_str).map_err(|e| KeystoreError::JsonError(e))?;
 
         Ok(keystore)
     }
