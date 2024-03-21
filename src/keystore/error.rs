@@ -19,4 +19,7 @@ pub enum KeystoreError {
 
     #[error("Invalid mnemonic: {0}")]
     InvalidMnemonic(String),
+
+    #[error("Unsupported encryption type")]
+    UnsupportedEncryptionType,
 }
