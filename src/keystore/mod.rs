@@ -32,7 +32,8 @@ use sp_core::{
     hexdisplay::HexDisplay,
 };
 use sp_runtime::{traits::IdentifyAccount, MultiSigner};
-use std::path::PathBuf;
+use std::{fs, os::unix::fs::PermissionsExt};
+use std::{fs::Permissions, path::PathBuf};
 
 use self::encryption::EncryptionType;
 
@@ -90,7 +91,7 @@ impl Keystore {
         path: &PathBuf,
         password: Option<SecretString>,
     ) -> Result<Self, KeystoreError> {
-        let encrypted = std::fs::read(path.join("coldkey"))
+        let encrypted = fs::read(path.join("coldkey"))
             .map_err(|e| KeystoreError::Io(e))?
             .to_vec();
 
@@ -129,7 +130,10 @@ impl Keystore {
         })
         .to_string();
 
-        std::fs::write(path.join("coldkeypub.txt"), json).map_err(KeystoreError::Io)
+        let full_path = path.join("coldkeypub.txt");
+        fs::write(&full_path, json).map_err(KeystoreError::Io);
+        fs::set_permissions(&path, Permissions::from_mode(0o600)).map_err(KeystoreError::Io)?;
+        Ok(())
     }
 
     pub fn save_unencrypted_with_secrets_to_file(
@@ -137,7 +141,9 @@ impl Keystore {
         path: &PathBuf,
     ) -> Result<(), KeystoreError> {
         let json = self.to_json()?.to_string();
-        std::fs::write(path, json).map_err(|e| KeystoreError::Io(e))
+        fs::write(path, json).map_err(|e| KeystoreError::Io(e));
+        fs::set_permissions(&path, Permissions::from_mode(0o600)).map_err(KeystoreError::Io)?;
+        Ok(())
     }
 
     pub fn save_encrypted_with_secrets_to_file(&self, path: &PathBuf) -> Result<(), KeystoreError> {
@@ -149,25 +155,20 @@ impl Keystore {
         let pw = self.password.as_ref().unwrap();
         let encrypted = encryption::encrypt(&json, pw, EncryptionType::Nacl)?;
 
-        std::fs::write(path.join("coldkey"), encrypted).map_err(|e| KeystoreError::Io(e))
+        let full_path = path.join("coldkey");
+
+        fs::write(&full_path, encrypted).map_err(|e| KeystoreError::Io(e))?;
+        fs::set_permissions(&full_path, Permissions::from_mode(0o600))
+            .map_err(KeystoreError::Io)?;
+        Ok(())
     }
 }
 
 pub fn create_keyfile_directory(path: &PathBuf) -> Result<(), KeystoreError> {
-    std::fs::create_dir_all(path).map_err(KeystoreError::Io)
+    fs::create_dir_all(path).map_err(KeystoreError::Io)
 }
 
-fn validate_password(password: &str) -> bool {
-    let min_length = 8;
-
-    if password.len() < min_length {
-        return false;
-    }
-
-    return true;
-}
-
-fn validate_wordcount(num_words: Option<usize>) -> Result<usize, KeystoreError> {
+pub fn validate_wordcount(num_words: Option<usize>) -> Result<usize, KeystoreError> {
     let words = match num_words {
         Some(words_count) if [12, 15, 18, 21, 24].contains(&words_count) => Ok(words_count),
         Some(_) => Err(KeystoreError::WordCount),
@@ -175,6 +176,16 @@ fn validate_wordcount(num_words: Option<usize>) -> Result<usize, KeystoreError> 
     };
 
     return words;
+}
+
+pub fn validate_password(password: &str) -> bool {
+    let min_length = 8;
+
+    if password.len() < min_length {
+        return false;
+    }
+
+    return true;
 }
 
 /// formats seed as hex
