@@ -216,16 +216,16 @@ mod test {
 
     #[test]
     fn it_decrypts_nacl_correctly() {
+        let expected_output = r#"{"accountId": "0x8675d3e27ba8a6b6a3cf23668d346ba398b8fd7b7c90f9d72789b21458cd192e", "publicKey": "0x8675d3e27ba8a6b6a3cf23668d346ba398b8fd7b7c90f9d72789b21458cd192e", "secretPhrase": "scheme coin blush private reunion door tuition grid world diagram reopen syrup", "secretSeed": "0x624517f37eabbc2c3d1f23a23de20107f57c2749264b84feac3b0eba5379301e", "ss58Address": "5F71GxBcHF9UfE6uiDcFsgbPNmHJGwPtNfg3F87HEeVczotP"}"#;
+
         let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
         let resource_path = std::path::Path::new(&manifest_dir).join("resources/testkey/coldkey");
-        println!("{:?}", resource_path);
 
         let data = std::fs::read(resource_path).unwrap();
-        println!("{:?}", data);
 
-        let password = "Password1!";
+        let password = "Password1%";
         let decrypted = decrypt_nacl(&data, password);
-
-        println!("{:?}", decrypted);
+        let decrypted_str = std::str::from_utf8(&decrypted).unwrap();
+        assert_eq!(decrypted_str, expected_output);
     }
 }
