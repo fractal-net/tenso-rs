@@ -8,6 +8,7 @@ use serde_derive::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 use crate::commands;
+use crate::commands::transfer::TransferArgs;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Config {
@@ -45,7 +46,7 @@ impl Provider for Config {
 }
 
 impl Config {
-    pub fn merge_with_args(&mut self, args: &commands::CliArgs) {
+    pub fn merge_with_root_cli_args(&mut self, args: &commands::CliArgs) {
         if let Some(config_path) = &args.config_path {
             self.config_path = config_path.clone();
         }
@@ -56,11 +57,11 @@ impl Config {
         if let Some(subtensor_endpoint) = &args.subtensor_endpoint {
             self.subtensor_endpoint = subtensor_endpoint.clone();
         }
-        if let Some(default_coldkey) = &args.coldkey {
-            self.default_coldkey = Some(default_coldkey.clone());
-        }
-        if let Some(default_hotkey) = &args.hotkey {
-            self.default_hotkey = Some(default_hotkey.clone());
+    }
+
+    pub fn merge_with_transfer_args(&mut self, args: &TransferArgs) {
+        if let Some(coldkey) = &args.coldkey {
+            self.default_coldkey = Some(coldkey.clone());
         }
     }
 

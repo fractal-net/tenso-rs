@@ -16,10 +16,29 @@ pub struct TransferArgs {
     pub recipient: String,
 
     #[arg(long = "amount", value_name = "Amount to transfer")]
-    pub amount: Option<u64>,
+    pub amount: u64,
+
+    // coldkey
+    #[arg(
+        long = "coldkey",
+        value_name = "STRING",
+        help = "Specifies the coldkey to use"
+    )]
+    pub coldkey: Option<String>,
+}
+
+impl TransferArgs {
+    pub fn merge_with_config(&mut self, config: &config::Config) {
+        if self.coldkey.is_none() {
+            self.coldkey = config.default_coldkey.clone();
+        }
+    }
 }
 
 pub async fn transfer(config: &config::Config, args: &TransferArgs) -> Result<(), CommandError> {
+    // extract args from config
+    // let from = if args.coldkey.is_none()
+
     let client = OnlineClient::<SubstrateConfig>::from_url(&config.subtensor_endpoint)
         .await
         .map_err(CommandError::Invalid)?;

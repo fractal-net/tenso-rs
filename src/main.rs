@@ -38,7 +38,7 @@ async fn main() {
 
     let args = App::parse();
 
-    config.merge_with_args(&args.cli_args);
+    config.merge_with_root_cli_args(&args.cli_args);
 
     if args.cli_args.config_path.is_some() {
         config.reload_from_path().unwrap();
@@ -55,6 +55,8 @@ async fn main() {
         Some(Commands::Transfer(transfer_args)) => {
             println!("Transfering with config: {:?}", config);
             println!("Transfering with args: {:?}", transfer_args);
+            config.merge_with_transfer_args(transfer_args);
+
             transfer(&config, transfer_args).await.unwrap();
         }
 

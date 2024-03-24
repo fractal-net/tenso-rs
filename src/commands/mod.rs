@@ -35,22 +35,4 @@ pub struct CliArgs {
         help = "URL of the Subtensor endpoint"
     )]
     pub subtensor_endpoint: Option<String>,
-
-    // coldkey
-    #[arg(
-        long = "coldkey",
-        value_name = "STRING",
-        help = "Specifies the coldkey to use",
-        global = true
-    )]
-    pub coldkey: Option<String>,
-
-    // hotkey
-    #[arg(
-        long = "hotkey",
-        value_name = "STRING",
-        help = "Specifies the hotkey to use",
-        global = true
-    )]
-    pub hotkey: Option<String>,
 }
