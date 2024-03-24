@@ -73,22 +73,41 @@ pub fn encrypt_nacl(data: &str, password: &str) -> Vec<u8> {
     output
 }
 
+fn format_data(data: &Vec<u8>) -> String {
+    data.iter()
+        .map(|&b| format!("{:02x}", b))
+        .collect::<String>()
+}
+
+fn extract_nonce_from_encryption_type(
+    encryption_type: EncryptionType,
+    data: &Vec<u8>,
+) -> secretbox::Nonce {
+    match encryption_type {
+        EncryptionType::Nacl => extract_nonce_nacl(data), // Skip the "$NACL" prefix
+        _ => panic!("Unsupported encryption type"),
+    }
+}
+
+fn extract_nonce_nacl(data: &Vec<u8>) -> secretbox::Nonce {
+    let nonce_start = 5; // Skip the "$NACL" prefix
+    let nonce_end = nonce_start + secretbox::NONCEBYTES; // secretbox::NONCEBYTES should be 24
+    let nonce_slice = &data[nonce_start..nonce_end];
+    let nonce_array: [u8; 24] = nonce_slice.try_into().expect("Slice with incorrect length"); // Convert the slice into an array
+    secretbox::Nonce(nonce_array)
+}
+
+fn extract_encrypted_data_nacl(data: &Vec<u8>) -> Vec<u8> {
+    let nonce_end = 5 + secretbox::NONCEBYTES; // secretbox::NONCEBYTES should be 24
+    data[nonce_end..].to_vec()
+}
+
 pub fn decrypt_nacl(data: &Vec<u8>, password: &str) -> Vec<u8> {
     // todo: find a clever place to put this
     sodiumoxide::init().unwrap();
 
-    let salt = argon2i13::Salt::from_slice(&NACL_SALT).unwrap();
-
-    // todo: verify it's of the right type
-    let data_without_prefix = &data[5..];
-
-    let nonce_slice = &data_without_prefix[0..24]; // Get the slice of the first 24 bytes
-    let nonce_array: [u8; 24] = nonce_slice.try_into().expect("Slice with incorrect length"); // Convert the slice into an array
-    let nonce = secretbox::Nonce(nonce_array);
-    let data = &data_without_prefix[24..];
-
     let password_bytes = password.as_bytes();
-
+    let salt = argon2i13::Salt::from_slice(&NACL_SALT).unwrap();
     let mut pk = [0; secretbox::KEYBYTES];
 
     let key_bytes = argon2i13::derive_key(
@@ -102,10 +121,12 @@ pub fn decrypt_nacl(data: &Vec<u8>, password: &str) -> Vec<u8> {
 
     let key = secretbox::Key::from_slice(&key_bytes).unwrap();
 
-    let encrypted_data = secretbox::open(&mut data, &nonce, &key).unwrap();
-    println!("{:?}", encrypted_data);
+    let nonce = extract_nonce_from_encryption_type(EncryptionType::Nacl, data);
+    let encrypted_data = extract_encrypted_data_nacl(data);
 
-    vec![]
+    let decrypted = secretbox::open(&encrypted_data, &nonce, &key).unwrap();
+
+    decrypted
 }
 
 #[cfg(test)]
@@ -156,12 +177,51 @@ mod test {
     }
 
     #[test]
+    fn it_fetches_nonce_correctly() {
+        let expected_nonce = secretbox::Nonce([
+            139, 30, 112, 189, 93, 199, 196, 156, 252, 64, 20, 97, 225, 132, 77, 52, 125, 179, 224,
+            39, 35, 194, 154, 228,
+        ]);
+
+        let cipher = "244e41434c8b1e70bd5dc7c49cfc401461e1844d347db3e02723c29ae428117ae4a29f30d15425c8d29712be07e313212b";
+        let cipher_bytes = hex::decode(&cipher).unwrap();
+
+        let actual_nonce = extract_nonce_nacl(&cipher_bytes);
+
+        assert_eq!(actual_nonce, expected_nonce);
+    }
+
+    #[test]
+    fn it_fetchs_encrypted_data_correctly() {
+        let expected_encrypted_data = vec![
+            40, 17, 122, 228, 162, 159, 48, 209, 84, 37, 200, 210, 151, 18, 190, 7, 227, 19, 33, 43,
+        ];
+
+        let cipher = "244e41434c8b1e70bd5dc7c49cfc401461e1844d347db3e02723c29ae428117ae4a29f30d15425c8d29712be07e313212b";
+        let cipher_bytes = hex::decode(&cipher).unwrap();
+
+        let actual_encrypted_data = extract_encrypted_data_nacl(&cipher_bytes);
+
+        assert_eq!(actual_encrypted_data, expected_encrypted_data);
+    }
+
+    #[test]
+    fn it_helps_me_debug() {
+        let cipher = "244e41434c8b1e70bd5dc7c49cfc401461e1844d347db3e02723c29ae428117ae4a29f30d15425c8d29712be07e313212b";
+        let cipher_bytes = hex::decode(&cipher).unwrap();
+        let password = "password";
+        let decrypted = decrypt_nacl(&cipher_bytes, password);
+        println!("{:?}", decrypted);
+    }
+
+    #[test]
     fn it_decrypts_nacl_correctly() {
         let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
         let resource_path = std::path::Path::new(&manifest_dir).join("resources/testkey/coldkey");
-
         println!("{:?}", resource_path);
+
         let data = std::fs::read(resource_path).unwrap();
+        println!("{:?}", data);
 
         let password = "Password1!";
         let decrypted = decrypt_nacl(&data, password);
