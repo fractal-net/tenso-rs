@@ -221,12 +221,12 @@ mod tests {
 
     #[test]
     fn test_validate_wordcount() {
-        assert_eq!(validate_wordcount(Some(12)), Ok(12));
-        assert_eq!(validate_wordcount(Some(15)), Ok(15));
-        assert_eq!(validate_wordcount(Some(18)), Ok(18));
-        assert_eq!(validate_wordcount(Some(21)), Ok(21));
-        assert_eq!(validate_wordcount(Some(24)), Ok(24));
-        assert_eq!(validate_wordcount(Some(25)), Err(KeystoreError::WordCount));
-        assert_eq!(validate_wordcount(None), Ok(12));
+        assert_eq!(validate_wordcount(Some(12)).unwrap(), 12);
+        assert_eq!(validate_wordcount(Some(15)).unwrap(), 15);
+        assert_eq!(validate_wordcount(Some(18)).unwrap(), 18);
+        assert_eq!(validate_wordcount(Some(21)).unwrap(), 21);
+        assert_eq!(validate_wordcount(Some(24)).unwrap(), 24);
+        assert!(validate_wordcount(Some(25)).is_err());
+        assert_eq!(validate_wordcount(None).unwrap(), 12);
     }
 }

@@ -13,6 +13,8 @@ use crate::commands;
 pub struct Config {
     pub config_path: String,
     pub key_path: PathBuf,
+    pub default_coldkey: Option<String>,
+    pub default_hotkey: Option<String>,
     pub subtensor_endpoint: String,
 }
 
@@ -20,8 +22,10 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             config_path: "~/.bittensor/tensors.toml".to_string(),
-            key_path: "~/.bittensor".into(),
+            key_path: "~/.bittensor/wallets".into(),
             subtensor_endpoint: "wss://entrypoint-finney.opentensor.ai:443".to_string(),
+            default_coldkey: None,
+            default_hotkey: None,
         }
     }
 }
@@ -51,6 +55,12 @@ impl Config {
         }
         if let Some(subtensor_endpoint) = &args.subtensor_endpoint {
             self.subtensor_endpoint = subtensor_endpoint.clone();
+        }
+        if let Some(default_coldkey) = &args.coldkey {
+            self.default_coldkey = Some(default_coldkey.clone());
+        }
+        if let Some(default_hotkey) = &args.hotkey {
+            self.default_hotkey = Some(default_hotkey.clone());
         }
     }
 

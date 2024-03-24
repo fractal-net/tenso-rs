@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-#[derive(Error, Debug, PartialEq)]
+#[derive(Error, Debug)]
 pub enum KeystoreError {
     #[error("Invalid configuration")]
     Invalid(#[source] figment::Error),
