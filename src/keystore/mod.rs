@@ -157,7 +157,7 @@ pub fn create_keyfile_directory(path: &PathBuf) -> Result<(), KeystoreError> {
     std::fs::create_dir_all(path).map_err(KeystoreError::Io)
 }
 
-pub fn validate_password(password: &str) -> bool {
+fn validate_password(password: &str) -> bool {
     let min_length = 8;
 
     if password.len() < min_length {
@@ -167,7 +167,7 @@ pub fn validate_password(password: &str) -> bool {
     return true;
 }
 
-pub fn validate_wordcount(num_words: Option<usize>) -> Result<usize, KeystoreError> {
+fn validate_wordcount(num_words: Option<usize>) -> Result<usize, KeystoreError> {
     let words = match num_words {
         Some(words_count) if [12, 15, 18, 21, 24].contains(&words_count) => Ok(words_count),
         Some(_) => Err(KeystoreError::WordCount),
@@ -196,4 +196,26 @@ where
         "0x{}",
         HexDisplay::from(&public_key.into().into_account().as_ref())
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_validate_password() {
+        assert_eq!(validate_password("passwor"), false);
+        assert_eq!(validate_password("password123"), true);
+    }
+
+    #[test]
+    fn test_validate_wordcount() {
+        assert_eq!(validate_wordcount(Some(12)), Ok(12));
+        assert_eq!(validate_wordcount(Some(15)), Ok(15));
+        assert_eq!(validate_wordcount(Some(18)), Ok(18));
+        assert_eq!(validate_wordcount(Some(21)), Ok(21));
+        assert_eq!(validate_wordcount(Some(24)), Ok(24));
+        assert_eq!(validate_wordcount(Some(25)), Err(KeystoreError::WordCount));
+        assert_eq!(validate_wordcount(None), Ok(12));
+    }
 }

@@ -41,10 +41,7 @@ pub fn decrypt(
     }
 }
 
-pub fn encrypt_nacl(data: &str, password: &str) -> Vec<u8> {
-    // todo: find a clever place to put this
-    sodiumoxide::init().unwrap();
-
+fn get_nacl_key(password: &str) -> secretbox::Key {
     let salt = argon2i13::Salt::from_slice(&NACL_SALT).unwrap();
 
     let password_bytes = password.as_bytes();
@@ -60,7 +57,14 @@ pub fn encrypt_nacl(data: &str, password: &str) -> Vec<u8> {
     )
     .unwrap();
 
-    let key = secretbox::Key::from_slice(&key_bytes).unwrap();
+    secretbox::Key::from_slice(&key_bytes).unwrap()
+}
+
+fn encrypt_nacl(data: &str, password: &str) -> Vec<u8> {
+    // todo: find a clever place to put this
+    sodiumoxide::init().unwrap();
+
+    let key = get_nacl_key(password);
 
     let nonce = secretbox::gen_nonce();
 
@@ -71,12 +75,6 @@ pub fn encrypt_nacl(data: &str, password: &str) -> Vec<u8> {
     output.extend_from_slice(&encrypted_data);
 
     output
-}
-
-fn format_data(data: &Vec<u8>) -> String {
-    data.iter()
-        .map(|&b| format!("{:02x}", b))
-        .collect::<String>()
 }
 
 fn extract_nonce_from_encryption_type(
@@ -105,22 +103,7 @@ fn extract_encrypted_data_nacl(data: &Vec<u8>) -> Vec<u8> {
 pub fn decrypt_nacl(data: &Vec<u8>, password: &str) -> Vec<u8> {
     // todo: find a clever place to put this
     sodiumoxide::init().unwrap();
-
-    let password_bytes = password.as_bytes();
-    let salt = argon2i13::Salt::from_slice(&NACL_SALT).unwrap();
-    let mut pk = [0; secretbox::KEYBYTES];
-
-    let key_bytes = argon2i13::derive_key(
-        &mut pk,
-        password_bytes,
-        &salt,
-        argon2i13::OPSLIMIT_SENSITIVE,
-        argon2i13::MEMLIMIT_SENSITIVE,
-    )
-    .unwrap();
-
-    let key = secretbox::Key::from_slice(&key_bytes).unwrap();
-
+    let key = get_nacl_key(password);
     let nonce = extract_nonce_from_encryption_type(EncryptionType::Nacl, data);
     let encrypted_data = extract_encrypted_data_nacl(data);
 
@@ -203,15 +186,6 @@ mod test {
         let actual_encrypted_data = extract_encrypted_data_nacl(&cipher_bytes);
 
         assert_eq!(actual_encrypted_data, expected_encrypted_data);
-    }
-
-    #[test]
-    fn it_helps_me_debug() {
-        let cipher = "244e41434c8b1e70bd5dc7c49cfc401461e1844d347db3e02723c29ae428117ae4a29f30d15425c8d29712be07e313212b";
-        let cipher_bytes = hex::decode(&cipher).unwrap();
-        let password = "password";
-        let decrypted = decrypt_nacl(&cipher_bytes, password);
-        println!("{:?}", decrypted);
     }
 
     #[test]
